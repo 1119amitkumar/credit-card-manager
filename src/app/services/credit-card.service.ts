@@ -7,7 +7,6 @@ import {
   setDoc,
   deleteDoc,
   onSnapshot,
-  getDocs,
   type Unsubscribe,
 } from 'firebase/firestore';
 
@@ -29,26 +28,10 @@ export class CreditCardService implements OnDestroy {
   private listenToCards(): void {
     const cardsRef = collection(db, COLLECTION);
 
-    this.unsubscribe = onSnapshot(cardsRef, async (snapshot) => {
-      if (snapshot.empty) {
-        await this.seedFromJSON();
-        return;
-      }
+    this.unsubscribe = onSnapshot(cardsRef, (snapshot) => {
       const cards = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as CreditCard);
       this.cards.set(cards);
     });
-  }
-
-  private async seedFromJSON(): Promise<void> {
-    const existing = await getDocs(collection(db, COLLECTION));
-    if (!existing.empty) return;
-
-    const baseHref = document.querySelector('base')?.getAttribute('href') || '/';
-    const res = await fetch(`${baseHref}data/cards.json`);
-    const seedCards: CreditCard[] = await res.json();
-    for (const card of seedCards) {
-      await setDoc(doc(db, COLLECTION, card.id), card);
-    }
   }
 
   readonly allCards = this.cards.asReadonly();
