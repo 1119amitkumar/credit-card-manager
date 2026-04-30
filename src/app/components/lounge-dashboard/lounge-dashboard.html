@@ -1,0 +1,114 @@
+<div class="lounge-page">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>✈️ Airport Lounge Cards</h1>
+      <p class="subtitle">Cards with airport lounge facility</p>
+    </div>
+    <a class="btn-back" routerLink="/">← All Cards</a>
+  </header>
+
+  <!-- Summary Strip -->
+  <div class="summary-strip">
+    <div class="summary-item">
+      <span class="summary-number">{{ totalCards() }}</span>
+      <span class="summary-label">Lounge Cards</span>
+    </div>
+    <div class="summary-item highlight">
+      <span class="summary-number">{{ eligibleCount() }} / {{ totalCards() }}</span>
+      <span class="summary-label">Currently Eligible</span>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="card-grid">
+    @for (card of cards(); track card.id) {
+      <div class="lounge-card" [class.eligible]="isLoungeEligible(card)">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="bank-info">
+            <span class="bank-name">{{ card.bankName }}</span>
+            <a class="card-name" [routerLink]="['/card', card.id]">{{ card.cardName }}</a>
+          </div>
+          @if (isLoungeEligible(card)) {
+            <span class="status-badge eligible-badge">✓ Eligible</span>
+          } @else {
+            <span class="status-badge not-eligible-badge">✗ Not Eligible</span>
+          }
+        </div>
+
+        <!-- Lounge Details -->
+        <div class="lounge-section">
+          <div class="lounge-detail">
+            <span class="label">Quarterly Threshold</span>
+            <span class="value">{{ card.loungeAccess.quarterlySpendThreshold | currency: 'INR':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="lounge-detail">
+            <span class="label">Current Quarter Spend</span>
+            <span class="value" [class.met]="isLoungeEligible(card)">{{ getCurrentQuarterSpend(card) | currency: 'INR':'symbol':'1.0-0' }}</span>
+          </div>
+
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [class.complete]="isLoungeEligible(card)"
+              [style.width.%]="loungeProgressPercent(card)">
+            </div>
+          </div>
+          <div class="progress-label">
+            <span>{{ loungeProgressPercent(card) | number: '1.0-0' }}% of threshold</span>
+            @if (!isLoungeEligible(card)) {
+              <span class="remaining">{{ loungeRemaining(card) | currency: 'INR':'symbol':'1.0-0' }} remaining</span>
+            } @else {
+              <span class="achieved">Threshold met! ✓</span>
+            }
+          </div>
+        </div>
+
+        <!-- Card Fee Info -->
+        <div class="card-info">
+          <div class="info-item">
+            <span class="label">Annual Fee</span>
+            <span class="value fee">{{ card.annualFee | currency: 'INR':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Anniversary</span>
+            <span class="value">{{ card.anniversaryMonth }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Insurance</span>
+            @if (card.insurance.available) {
+              <span class="value insurance-yes">🛡️ Included</span>
+            } @else {
+              <span class="value insurance-no">Not Available</span>
+            }
+          </div>
+        </div>
+
+        <!-- Monthly Spend -->
+        @if (card.monthlySpends.length) {
+          <details class="monthly-section">
+            <summary class="section-title">📊 Last 6 Months Spend</summary>
+            <div class="monthly-grid">
+              @for (ms of card.monthlySpends; track ms.month) {
+                <div class="monthly-item">
+                  <span class="month">{{ ms.month }}</span>
+                  <span class="amount">{{ ms.amount | currency: 'INR':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          </details>
+        }
+      </div>
+    }
+  </div>
+
+  @if (totalCards() === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">✈️</div>
+      <h2>No Lounge Cards</h2>
+      <p>None of your credit cards have airport lounge facility enabled.</p>
+      <a class="btn-back" routerLink="/">← Go to Dashboard</a>
+    </div>
+  }
+</div>

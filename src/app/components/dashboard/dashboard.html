@@ -1,0 +1,467 @@
+<div class="dashboard">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>💳 Credit Card Dashboard</h1>
+      <p class="subtitle">Track your cards, fees & spend thresholds</p>
+    </div>
+    <button class="btn-add" (click)="openAddModal()">+ Add Card</button>
+  </header>
+
+  <!-- Summary Strip -->
+  <div class="summary-strip">
+    <div class="summary-item">
+      <span class="summary-number">{{ totalCards() }}</span>
+      <span class="summary-label">Total Cards</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-number">{{ totalAnnualFees() | currency: 'INR':'symbol':'1.0-0' }}</span>
+      <span class="summary-label">Total Annual Fees</span>
+    </div>
+    <div class="summary-item highlight">
+      <span class="summary-number">{{ cardsMetThreshold() }} / {{ totalCards() }}</span>
+      <span class="summary-label">Threshold Met</span>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="card-grid">
+    @for (card of cards(); track card.id) {
+      <div class="cc-card" [class.threshold-met]="isThresholdMet(card)" [class.urgent]="isUrgent(card)">
+        <!-- Card Header -->
+        <div class="cc-header">
+          <div class="bank-info">
+            <span class="bank-name">{{ card.bankName }}</span>
+            <a class="card-name" [routerLink]="['/card', card.id]">{{ card.cardName }}</a>
+          </div>
+          <div class="cc-header-actions">
+            @if (isThresholdMet(card)) {
+              <span class="badge badge-success">✓ Fee Waived</span>
+            } @else if (isUrgent(card)) {
+              <span class="badge badge-urgent">⚠ Urgent</span>
+            } @else {
+              <span class="badge badge-pending">In Progress</span>
+            }
+            <button class="btn-edit" (click)="openEditModal(card)" title="Edit card">✎</button>
+            <button class="btn-delete" (click)="openDeleteModal(card)" title="Remove card">✕</button>
+          </div>
+        </div>
+
+        <!-- Key Details -->
+        <div class="cc-details">
+          <div class="detail-row">
+            <span class="detail-label">Annual Fee</span>
+            <span class="detail-value fee">{{ card.annualFee | currency: 'INR':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Anniversary Month</span>
+            <span class="detail-value">{{ card.anniversaryMonth }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Spend Threshold</span>
+            <span class="detail-value">{{ card.spendThreshold | currency: 'INR':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Insurance</span>
+            @if (card.insurance.available) {
+              <span class="detail-value insurance-yes">🛡️ Included</span>
+            } @else {
+              <span class="detail-value insurance-no">Not Available</span>
+            }
+          </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="cc-progress">
+          <div class="progress-header">
+            <span class="progress-label">Spend Progress</span>
+            <span class="progress-pct">{{ progressPercent(card) | number: '1.0-0' }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [class.complete]="isThresholdMet(card)"
+              [style.width.%]="progressPercent(card)">
+            </div>
+          </div>
+          <div class="spend-row">
+            <div class="spend-item">
+              <span class="spend-label">Spent</span>
+              <span class="spend-value">{{ card.spendTillNow | currency: 'INR':'symbol':'1.0-0' }}</span>
+            </div>
+            <div class="spend-item right">
+              <span class="spend-label">Remaining</span>
+              <span class="spend-value" [class.zero]="isThresholdMet(card)">
+                {{ remainingSpend(card) | currency: 'INR':'symbol':'1.0-0' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lounge Access Section -->
+        <div class="cc-lounge">
+          <div class="lounge-header">
+            <span class="lounge-title">✈️ Airport Lounge</span>
+            @if (!card.loungeAccess.available) {
+              <span class="lounge-badge lounge-na">Not Available</span>
+            } @else if (isLoungeEligible(card)) {
+              <span class="lounge-badge lounge-eligible">✓ Eligible</span>
+            } @else {
+              <span class="lounge-badge lounge-not-eligible">✗ Not Eligible</span>
+            }
+          </div>
+          @if (card.loungeAccess.available) {
+            <div class="lounge-details">
+              <div class="lounge-detail-row">
+                <span>Quarterly Threshold</span>
+                <span class="lounge-val">{{ card.loungeAccess.quarterlySpendThreshold | currency: 'INR':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="lounge-detail-row">
+                <span>Current Quarter Spend</span>
+                <span class="lounge-val">{{ getCurrentQuarterSpend(card) | currency: 'INR':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="progress-bar lounge-bar">
+                <div
+                  class="progress-fill"
+                  [class.complete]="isLoungeEligible(card)"
+                  [style.width.%]="loungeProgressPercent(card)">
+                </div>
+              </div>
+              @if (!isLoungeEligible(card)) {
+                <div class="lounge-remaining">
+                  Spend <strong>{{ loungeRemaining(card) | currency: 'INR':'symbol':'1.0-0' }}</strong> more this quarter
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Monthly Spend History -->
+        @if (card.monthlySpends.length) {
+          <details class="cc-monthly">
+            <summary class="monthly-title">📊 Last 6 Months Spend</summary>
+            <div class="monthly-grid">
+              @for (ms of card.monthlySpends; track ms.month) {
+                <div class="monthly-item">
+                  <span class="monthly-month">{{ ms.month }}</span>
+                  <span class="monthly-amount">{{ ms.amount | currency: 'INR':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          </details>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (cardToDelete(); as card) {
+  <div class="modal-overlay" (click)="closeDeleteModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-icon">🗑️</div>
+      <h2 class="modal-title">Remove Card</h2>
+      <p class="modal-message">
+        Are you sure you want to remove <strong>{{ card.bankName }} — {{ card.cardName }}</strong>?
+      </p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" (click)="closeDeleteModal()">Cancel</button>
+        <button class="modal-btn modal-btn-delete" (click)="confirmDelete()">Remove</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Add Card Modal -->
+@if (showAddModal()) {
+  <div class="modal-overlay" (click)="closeAddModal()">
+    <div class="modal modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-icon">➕</div>
+      <h2 class="modal-title">Add New Card</h2>
+
+      <form [formGroup]="addCardForm" (ngSubmit)="submitCard()" class="add-form">
+        <div class="form-group">
+          <label for="bankName">Bank Name <span class="req">*</span></label>
+          <input id="bankName" formControlName="bankName" type="text" placeholder="e.g. HDFC Bank" />
+          @if (addCardForm.get('bankName')?.invalid && addCardForm.get('bankName')?.touched) {
+            <span class="field-error">Bank name is required.</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="cardName">Card Name <span class="req">*</span></label>
+          <input id="cardName" formControlName="cardName" type="text" placeholder="e.g. Infinia" />
+          @if (addCardForm.get('cardName')?.invalid && addCardForm.get('cardName')?.touched) {
+            <span class="field-error">Card name is required.</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="annualFee">Annual Fee (₹) <span class="req">*</span></label>
+            <input id="annualFee" formControlName="annualFee" type="number" min="0" placeholder="e.g. 5000" />
+            @if (addCardForm.get('annualFee')?.invalid && addCardForm.get('annualFee')?.touched) {
+              <span class="field-error">Valid fee is required.</span>
+            }
+          </div>
+          <div class="form-group">
+            <label for="anniversaryMonth">Anniversary Month <span class="req">*</span></label>
+            <select id="anniversaryMonth" formControlName="anniversaryMonth">
+              <option value="" disabled>Select month</option>
+              @for (month of months; track month) {
+                <option [value]="month">{{ month }}</option>
+              }
+            </select>
+            @if (addCardForm.get('anniversaryMonth')?.invalid && addCardForm.get('anniversaryMonth')?.touched) {
+              <span class="field-error">Month is required.</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="spendThreshold">Spend Threshold (₹) <span class="req">*</span></label>
+            <input id="spendThreshold" formControlName="spendThreshold" type="number" min="1" placeholder="e.g. 1000000" />
+            @if (addCardForm.get('spendThreshold')?.invalid && addCardForm.get('spendThreshold')?.touched) {
+              <span class="field-error">Valid threshold is required.</span>
+            }
+          </div>
+          <div class="form-group">
+            <label for="spendTillNow">Spend Till Now (₹) <span class="req">*</span></label>
+            <input id="spendTillNow" formControlName="spendTillNow" type="number" min="0" placeholder="e.g. 500000" />
+            @if (addCardForm.get('spendTillNow')?.invalid && addCardForm.get('spendTillNow')?.touched) {
+              <span class="field-error">Valid amount is required.</span>
+            }
+          </div>
+        </div>
+
+        <!-- Insurance -->
+        <details class="form-accordion">
+          <summary class="form-section-title">🛡️ Insurance</summary>
+          <div class="form-accordion-body">
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" formControlName="insuranceAvailable" />
+                Insurance provided
+              </label>
+            </div>
+            @if (addCardForm.get('insuranceAvailable')?.value) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Accidental Death Cover (₹)</label>
+                  <input formControlName="accidentalDeathCover" type="number" min="0" placeholder="e.g. 10000000" />
+                </div>
+                <div class="form-group">
+                  <label>Air Accident Cover (₹)</label>
+                  <input formControlName="airAccidentCover" type="number" min="0" placeholder="e.g. 25000000" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Fraud Liability Cover (₹)</label>
+                  <input formControlName="fraudLiabilityCover" type="number" min="0" placeholder="e.g. 500000" />
+                </div>
+                <div class="form-group">
+                  <label>Lost Card Liability (₹)</label>
+                  <input formControlName="lostCardLiability" type="number" min="0" placeholder="e.g. 500000" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Purchase Protection (₹)</label>
+                  <input formControlName="purchaseProtection" type="number" min="0" placeholder="e.g. 1000000" />
+                </div>
+                <div class="form-group">
+                  <label>Travel Insurance (₹)</label>
+                  <input formControlName="travelInsurance" type="number" min="0" placeholder="e.g. 5000000" />
+                </div>
+              </div>
+            }
+          </div>
+        </details>
+
+        <!-- Lounge Access -->
+        <div class="form-section-title">✈️ Airport Lounge Access</div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" formControlName="loungeAvailable" />
+            Lounge facility available
+          </label>
+        </div>
+        @if (addCardForm.get('loungeAvailable')?.value) {
+          <div class="form-group">
+            <label for="loungeQThreshold">Quarterly Threshold (₹)</label>
+            <input id="loungeQThreshold" formControlName="loungeQuarterlyThreshold" type="number" min="0" placeholder="e.g. 75000" />
+          </div>
+        }
+
+        <!-- Monthly Spends -->
+        <details class="form-accordion">
+          <summary class="form-section-title">📊 Last 6 Months Spend</summary>
+          <div class="form-accordion-body">
+            <div class="monthly-spend-grid" formArrayName="monthlySpends">
+              @for (spend of addMonthlySpends.controls; track $index) {
+                <div class="monthly-spend-row" [formGroupName]="$index">
+                  <span class="monthly-spend-label">{{ spend.get('month')?.value }}</span>
+                  <input formControlName="amount" type="number" min="0" placeholder="₹ amount" />
+                </div>
+              }
+            </div>
+          </div>
+        </details>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-cancel" (click)="closeAddModal()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-add">Add Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Edit Card Modal -->
+@if (cardToEdit(); as editCard) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-icon">✏️</div>
+      <h2 class="modal-title">Edit Card</h2>
+
+      <form [formGroup]="editCardForm" (ngSubmit)="submitEdit()" class="add-form">
+        <div class="form-group">
+          <label for="editBankName">Bank Name <span class="req">*</span></label>
+          <input id="editBankName" formControlName="bankName" type="text" />
+          @if (editCardForm.get('bankName')?.invalid && editCardForm.get('bankName')?.touched) {
+            <span class="field-error">Bank name is required.</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="editCardName">Card Name <span class="req">*</span></label>
+          <input id="editCardName" formControlName="cardName" type="text" />
+          @if (editCardForm.get('cardName')?.invalid && editCardForm.get('cardName')?.touched) {
+            <span class="field-error">Card name is required.</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editAnnualFee">Annual Fee (₹) <span class="req">*</span></label>
+            <input id="editAnnualFee" formControlName="annualFee" type="number" min="0" />
+            @if (editCardForm.get('annualFee')?.invalid && editCardForm.get('annualFee')?.touched) {
+              <span class="field-error">Valid fee is required.</span>
+            }
+          </div>
+          <div class="form-group">
+            <label for="editAnniversaryMonth">Anniversary Month <span class="req">*</span></label>
+            <select id="editAnniversaryMonth" formControlName="anniversaryMonth">
+              <option value="" disabled>Select month</option>
+              @for (month of months; track month) {
+                <option [value]="month">{{ month }}</option>
+              }
+            </select>
+            @if (editCardForm.get('anniversaryMonth')?.invalid && editCardForm.get('anniversaryMonth')?.touched) {
+              <span class="field-error">Month is required.</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editSpendThreshold">Spend Threshold (₹) <span class="req">*</span></label>
+            <input id="editSpendThreshold" formControlName="spendThreshold" type="number" min="1" />
+            @if (editCardForm.get('spendThreshold')?.invalid && editCardForm.get('spendThreshold')?.touched) {
+              <span class="field-error">Valid threshold is required.</span>
+            }
+          </div>
+          <div class="form-group">
+            <label for="editSpendTillNow">Spend Till Now (₹) <span class="req">*</span></label>
+            <input id="editSpendTillNow" formControlName="spendTillNow" type="number" min="0" />
+            @if (editCardForm.get('spendTillNow')?.invalid && editCardForm.get('spendTillNow')?.touched) {
+              <span class="field-error">Valid amount is required.</span>
+            }
+          </div>
+        </div>
+
+        <!-- Insurance -->
+        <details class="form-accordion">
+          <summary class="form-section-title">🛡️ Insurance</summary>
+          <div class="form-accordion-body">
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" formControlName="insuranceAvailable" />
+                Insurance provided
+              </label>
+            </div>
+            @if (editCardForm.get('insuranceAvailable')?.value) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Accidental Death Cover (₹)</label>
+                  <input formControlName="accidentalDeathCover" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Air Accident Cover (₹)</label>
+                  <input formControlName="airAccidentCover" type="number" min="0" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Fraud Liability Cover (₹)</label>
+                  <input formControlName="fraudLiabilityCover" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Lost Card Liability (₹)</label>
+                  <input formControlName="lostCardLiability" type="number" min="0" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Purchase Protection (₹)</label>
+                  <input formControlName="purchaseProtection" type="number" min="0" />
+                </div>
+                <div class="form-group">
+                  <label>Travel Insurance (₹)</label>
+                  <input formControlName="travelInsurance" type="number" min="0" />
+                </div>
+              </div>
+            }
+          </div>
+        </details>
+
+        <!-- Lounge Access -->
+        <div class="form-section-title">✈️ Airport Lounge Access</div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" formControlName="loungeAvailable" />
+            Lounge facility available
+          </label>
+        </div>
+        @if (editCardForm.get('loungeAvailable')?.value) {
+          <div class="form-group">
+            <label for="editLoungeQThreshold">Quarterly Threshold (₹)</label>
+            <input id="editLoungeQThreshold" formControlName="loungeQuarterlyThreshold" type="number" min="0" />
+          </div>
+        }
+
+        <!-- Monthly Spends -->
+        <details class="form-accordion">
+          <summary class="form-section-title">📊 Last 6 Months Spend</summary>
+          <div class="form-accordion-body">
+            <div class="monthly-spend-grid" formArrayName="monthlySpends">
+              @for (spend of editMonthlySpends.controls; track $index) {
+                <div class="monthly-spend-row" [formGroupName]="$index">
+                  <span class="monthly-spend-label">{{ spend.get('month')?.value }}</span>
+                  <input formControlName="amount" type="number" min="0" />
+                </div>
+              }
+            </div>
+          </div>
+        </details>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-cancel" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-add">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

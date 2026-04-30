@@ -1,0 +1,413 @@
+/* ===== Lounge Page Layout ===== */
+.lounge-page {
+  min-height: 100vh;
+  padding: 2rem 2.5rem;
+  background: linear-gradient(135deg, #f0f4ff, #e8f0fe);
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 0;
+  }
+
+  .subtitle {
+    color: #6b7280;
+    margin: 0.25rem 0 0;
+    font-size: 0.95rem;
+  }
+}
+
+.btn-back {
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-block;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+  }
+}
+
+/* ===== Summary Strip ===== */
+.summary-strip {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  flex: 1;
+  min-width: 180px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .summary-number {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #1a1a2e;
+  }
+
+  .summary-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+
+  &.highlight {
+    background: linear-gradient(135deg, #10b981, #059669);
+
+    .summary-number,
+    .summary-label {
+      color: #fff;
+    }
+  }
+}
+
+/* ===== Card Grid ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ===== Lounge Card ===== */
+.lounge-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-left: 5px solid #667eea;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: fadeIn 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  &.eligible {
+    border-left-color: #10b981;
+  }
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+
+  .bank-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bank-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+  }
+
+  .card-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-top: 2px;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #667eea;
+    }
+  }
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+
+  &.eligible-badge {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.not-eligible-badge {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+/* ===== Lounge Section ===== */
+.lounge-section {
+  background: #f0f4ff;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lounge-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+
+  .label {
+    font-size: 0.82rem;
+    color: #6b7280;
+  }
+
+  .value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a1a2e;
+
+    &.met {
+      color: #10b981;
+    }
+  }
+}
+
+.progress-bar {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 0.6rem 0 0.4rem;
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.4s ease;
+
+    &.complete {
+      background: linear-gradient(90deg, #10b981, #059669);
+    }
+  }
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+
+  .remaining {
+    color: #dc2626;
+    font-weight: 700;
+  }
+
+  .achieved {
+    color: #10b981;
+    font-weight: 700;
+  }
+}
+
+/* ===== Card Info ===== */
+.card-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 10px;
+
+  .label {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-top: 2px;
+
+    &.fee {
+      color: #ef4444;
+    }
+
+    &.insurance-yes {
+      color: #059669;
+      font-weight: 800;
+    }
+
+    &.insurance-no {
+      color: #9ca3af;
+      font-weight: 600;
+    }
+  }
+}
+
+/* ===== Monthly Spend (Accordion) ===== */
+.monthly-section {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 0;
+  border: none;
+
+  &[open] .section-title::after {
+    transform: rotate(180deg);
+  }
+
+  &[open] .monthly-grid {
+    animation: accordionOpen 0.25s ease;
+  }
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 12px;
+  transition: background 0.2s;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::after {
+    content: '▾';
+    font-size: 0.9rem;
+    color: #9ca3af;
+    transition: transform 0.25s ease;
+  }
+
+  &:hover {
+    background: #f0f1f3;
+  }
+}
+
+.monthly-section .monthly-grid {
+  padding: 0 1rem 1rem;
+}
+
+@keyframes accordionOpen {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.monthly-item {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  .month {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+  }
+
+  .amount {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-top: 2px;
+  }
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 0 0 0.5rem;
+  }
+
+  p {
+    color: #6b7280;
+    margin: 0 0 1.5rem;
+  }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .lounge-page {
+    padding: 1rem;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-strip {
+    flex-direction: column;
+  }
+
+  .card-info {
+    flex-direction: column;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

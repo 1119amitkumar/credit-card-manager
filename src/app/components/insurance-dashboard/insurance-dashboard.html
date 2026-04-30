@@ -1,0 +1,94 @@
+<div class="insurance-page">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>🛡️ Insurance Coverage</h1>
+      <p class="subtitle">Cards with insurance benefits</p>
+    </div>
+    <a class="btn-back" routerLink="/">← All Cards</a>
+  </header>
+
+  <!-- Summary -->
+  <div class="summary-strip">
+    <div class="summary-item">
+      <span class="summary-number">{{ totalCards() }}</span>
+      <span class="summary-label">Insured Cards</span>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="card-grid">
+    @for (card of cards(); track card.id) {
+      <div class="ins-card">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="bank-info">
+            <span class="bank-name">{{ card.bankName }}</span>
+            <a class="card-name" [routerLink]="['/card', card.id]">{{ card.cardName }}</a>
+          </div>
+          <div class="card-header-actions">
+            <span class="coverage-count">{{ totalCoverageTypes(card) }}/{{ coverageLabels.length }} covers</span>
+            <button class="btn-edit" (click)="openEditModal(card)" title="Edit insurance">✎</button>
+          </div>
+        </div>
+
+        <!-- Coverage Grid -->
+        <div class="coverage-grid">
+          @for (item of coverageLabels; track item.key) {
+            <div class="coverage-item" [class.active]="hasCoverage(card, item.key)" [class.inactive]="!hasCoverage(card, item.key)">
+              <div class="coverage-icon">{{ item.icon }}</div>
+              <div class="coverage-info">
+                <span class="coverage-label">{{ item.label }}</span>
+                @if (hasCoverage(card, item.key)) {
+                  <span class="coverage-value">{{ getCoverageValue(card, item.key) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                } @else {
+                  <span class="coverage-na">Not Covered</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Card basic info -->
+        <div class="card-meta">
+          <span class="meta-item">Annual Fee: <strong>{{ card.annualFee | currency: 'INR':'symbol':'1.0-0' }}</strong></span>
+          <span class="meta-divider">•</span>
+          <span class="meta-item">Anniversary: <strong>{{ card.anniversaryMonth }}</strong></span>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (totalCards() === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h2>No Insured Cards</h2>
+      <p>None of your credit cards have insurance coverage enabled.</p>
+      <a class="btn-back" routerLink="/">← Go to Dashboard</a>
+    </div>
+  }
+</div>
+
+<!-- Edit Insurance Modal -->
+@if (cardToEdit(); as editCard) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-icon">✏️</div>
+      <h2 class="modal-title">Edit Insurance — {{ editCard.bankName }} {{ editCard.cardName }}</h2>
+
+      <form [formGroup]="editInsuranceForm" (ngSubmit)="submitEdit()" class="edit-form">
+        @for (item of coverageLabels; track item.key) {
+          <div class="form-group">
+            <label [for]="'edit_' + item.key">{{ item.icon }} {{ item.label }} (₹)</label>
+            <input [id]="'edit_' + item.key" [formControlName]="item.key" type="number" min="0" placeholder="0 = Not Covered" />
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-cancel" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
