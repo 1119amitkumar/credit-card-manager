@@ -1,65 +1,54 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, OnDestroy } from '@angular/core';
 import { CreditCard } from '../models/credit-card.model';
+import { db } from '../firebase.config';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDocs,
+  type Unsubscribe,
+} from 'firebase/firestore';
 
-const DB_NAME = 'CreditCardDB';
-const STORE_NAME = 'cards';
-const DB_VERSION = 1;
+const COLLECTION = 'cards';
 
 @Injectable({ providedIn: 'root' })
-export class CreditCardService {
+export class CreditCardService implements OnDestroy {
   private readonly cards = signal<CreditCard[]>([]);
-  private db!: IDBDatabase;
+  private unsubscribe: Unsubscribe | null = null;
 
   constructor() {
-    this.initDB();
+    this.listenToCards();
   }
 
-  private initDB(): void {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+  ngOnDestroy(): void {
+    this.unsubscribe?.();
+  }
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+  private listenToCards(): void {
+    const cardsRef = collection(db, COLLECTION);
+
+    this.unsubscribe = onSnapshot(cardsRef, async (snapshot) => {
+      if (snapshot.empty) {
+        await this.seedFromJSON();
+        return;
       }
-    };
-
-    request.onsuccess = () => {
-      this.db = request.result;
-      this.loadCards();
-    };
+      const cards = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as CreditCard);
+      this.cards.set(cards);
+    });
   }
 
-  private loadCards(): void {
-    const tx = this.db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const getAll = store.getAll();
+  private async seedFromJSON(): Promise<void> {
+    const existing = await getDocs(collection(db, COLLECTION));
+    if (!existing.empty) return;
 
-    getAll.onsuccess = () => {
-      if (getAll.result.length > 0) {
-        this.cards.set(getAll.result);
-      } else {
-        this.seedFromJSON();
-      }
-    };
-  }
-
-  private seedFromJSON(): void {
-    fetch('/data/cards.json')
-      .then(res => res.json())
-      .then((seedCards: CreditCard[]) => {
-        const tx = this.db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        seedCards.forEach(card => store.put(card));
-        tx.oncomplete = () => this.cards.set(seedCards);
-      });
-  }
-
-  private saveAll(): void {
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.clear();
-    this.cards().forEach(card => store.put(card));
+    const baseHref = document.querySelector('base')?.getAttribute('href') || '/';
+    const res = await fetch(`${baseHref}data/cards.json`);
+    const seedCards: CreditCard[] = await res.json();
+    for (const card of seedCards) {
+      await setDoc(doc(db, COLLECTION, card.id), card);
+    }
   }
 
   readonly allCards = this.cards.asReadonly();
@@ -84,25 +73,18 @@ export class CreditCardService {
     return this.cards().find(c => c.id === id);
   }
 
-  deleteCard(id: string): void {
-    this.cards.update(cards => cards.filter(c => c.id !== id));
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(id);
+  async deleteCard(id: string): Promise<void> {
+    await deleteDoc(doc(db, COLLECTION, id));
   }
 
-  addCard(card: Omit<CreditCard, 'id'>): void {
-    const newCard: CreditCard = { ...card, id: crypto.randomUUID() };
-    this.cards.update(cards => [...cards, newCard]);
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(newCard);
+  async addCard(card: Omit<CreditCard, 'id'>): Promise<void> {
+    const newId = crypto.randomUUID();
+    const newCard: CreditCard = { ...card, id: newId };
+    await setDoc(doc(db, COLLECTION, newId), newCard);
   }
 
-  updateCard(id: string, updates: Omit<CreditCard, 'id'>): void {
+  async updateCard(id: string, updates: Omit<CreditCard, 'id'>): Promise<void> {
     const updated: CreditCard = { ...updates, id };
-    this.cards.update(cards =>
-      cards.map(c => c.id === id ? updated : c)
-    );
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(updated);
+    await setDoc(doc(db, COLLECTION, id), updated);
   }
 }

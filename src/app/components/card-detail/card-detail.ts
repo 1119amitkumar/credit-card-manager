@@ -231,7 +231,8 @@ export class CardDetail {
   deleteCard(): void {
     const card = this.card();
     if (!card) return;
-    this.cardService.deleteCard(card.id);
-    this.router.navigate(['/']);
+    this.cardService.deleteCard(card.id).then(() => {
+      this.router.navigate(['/']);
+    });
   }
 }
